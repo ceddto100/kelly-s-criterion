@@ -1,4 +1,4 @@
-# Smart Sports Betting Assistant
+# Kelly's Criterion
 
 A sophisticated sports betting application that implements the Kelly Criterion for optimal bankroll management and bet sizing. This application helps users make informed betting decisions by combining mathematical models with customizable risk management strategies.
 
@@ -52,7 +52,7 @@ A sophisticated sports betting application that implements the Kelly Criterion f
 1. Clone the repository:
 ```bash
 git clone https://github.com/ceddto100/kelly-s-criterion.git
-cd smart-sports-betting
+cd kelly-s-criterion
 ```
 
 2. Install dependencies for both frontend and backend:
@@ -62,7 +62,7 @@ cd backend
 npm install
 
 # Install frontend dependencies
-cd ../frontend
+cd ../smart-sports-betting
 npm install
 ```
 

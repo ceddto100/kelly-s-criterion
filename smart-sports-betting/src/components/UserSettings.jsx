@@ -1,20 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const UserSettings = ({ settings, onSave, onCancel }) => {
+const UserSettings = ({ settings = {}, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    initialBankroll: settings.initialBankroll || 0,
-    defaultKellyFraction: settings.defaultKellyFraction || 'full',
-    stopLossPercentage: settings.stopLossPercentage || 20,
-    stopWinPercentage: settings.stopWinPercentage || 50,
-    oddsFormat: settings.oddsFormat || 'american',
-    maxBetPercentage: settings.maxBetPercentage || 10,
-    maxConsecutiveLosses: settings.maxConsecutiveLosses || 3,
-    unitSizingEnabled: settings.unitSizingEnabled || false,
-    baseUnitSize: settings.baseUnitSize || 100,
+    bankroll: settings?.bankroll || settings?.initialBankroll || 1000,
+    defaultKellyFraction: settings?.defaultKellyFraction || 'half',
+    stopLossPercentage: settings?.stopLossPercentage || 20,
+    stopWinPercentage: settings?.stopWinPercentage || 50,
+    oddsFormat: settings?.oddsFormat || 'american',
+    maxBetPercentage: settings?.maxBetPercentage || 5,
+    maxConsecutiveLosses: settings?.maxConsecutiveLosses || 3,
+    unitSizingEnabled: settings?.unitSizingEnabled || false,
+    baseUnitSize: settings?.baseUnitSize || 100,
   });
+
+  // Log the received settings for debugging
+  useEffect(() => {
+    console.log('UserSettings received settings:', settings);
+  }, [settings]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log('Saving settings:', formData);
     onSave(formData);
   };
 
@@ -22,7 +28,7 @@ const UserSettings = ({ settings, onSave, onCancel }) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value
     }));
   };
 
@@ -49,7 +55,7 @@ const UserSettings = ({ settings, onSave, onCancel }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Initial Bankroll
+                Bankroll
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -57,8 +63,8 @@ const UserSettings = ({ settings, onSave, onCancel }) => {
                 </div>
                 <input
                   type="number"
-                  name="initialBankroll"
-                  value={formData.initialBankroll}
+                  name="bankroll"
+                  value={formData.bankroll}
                   onChange={handleInputChange}
                   className="pl-7 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   min="0"
@@ -223,7 +229,7 @@ const UserSettings = ({ settings, onSave, onCancel }) => {
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-xl font-medium hover:bg-gray-300 transition-colors duration-200"
+            className="flex-1 bg-indigo-100 text-indigo-800 py-3 rounded-xl font-medium hover:bg-indigo-200 transition-colors duration-200"
           >
             Cancel
           </button>

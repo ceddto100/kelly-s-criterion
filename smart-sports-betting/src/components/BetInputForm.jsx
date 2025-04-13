@@ -1,177 +1,154 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
-const BetInputForm = ({ onCalculate, defaultOddsFormat = 'american' }) => {
+const BetInputForm = ({ onCalculate, settings }) => {
   const [formData, setFormData] = useState({
-    matchTitle: '',
-    probability: 50,
-    odds: '',
-    oddsFormat: defaultOddsFormat,
-    confidenceLevel: 3,
+    probability: 0.55,
+    odds: -110,
+    oddsFormat: 'american',
+    bankroll: settings?.bankroll || settings?.initialBankroll || 1000,
+    betType: 'spread',
+    sport: 'basketball'
   });
 
-  // Update oddsFormat when default changes
-  useEffect(() => {
+  const handleChange = (e) => {
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      oddsFormat: defaultOddsFormat
+      [name]: type === 'number' ? parseFloat(value) : value
     }));
-  }, [defaultOddsFormat]);
+  };
+
+  const handleProbabilitySlider = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      probability: parseFloat(e.target.value)
+    }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Simple validation
-    if (!formData.matchTitle.trim()) {
-      alert('Please enter a match title');
-      return;
-    }
-
-    if (!formData.odds) {
-      alert('Please enter odds');
-      return;
-    }
-
-    // Validate odds format
-    if (formData.oddsFormat === 'american') {
-      // American odds should be a valid number
-      if (!/^[+-]?\d+$/.test(formData.odds)) {
-        alert('American odds should be in format like +150 or -110');
-        return;
-      }
-    } else if (formData.oddsFormat === 'decimal') {
-      // Decimal odds should be a number greater than 1
-      const decimalOdds = parseFloat(formData.odds);
-      if (isNaN(decimalOdds) || decimalOdds < 1) {
-        alert('Decimal odds should be a number greater than 1 (e.g., 2.5)');
-        return;
-      }
-    }
-
     onCalculate(formData);
   };
 
-  const handleProbabilityChange = (value) => {
-    setFormData(prev => ({
-      ...prev,
-      probability: Math.min(99, Math.max(1, value))
-    }));
+  const formatProbability = (prob) => {
+    return `${(prob * 100).toFixed(1)}%`;
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">New Bet Analysis</h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Game/Match Title */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Game/Match Title
-          </label>
-          <input
-            type="text"
-            value={formData.matchTitle}
-            onChange={(e) => setFormData(prev => ({ ...prev, matchTitle: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="e.g. Lakers vs Warriors"
-            required
-          />
-        </div>
-
-        {/* Win Probability Slider */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Estimated Win Probability: {formData.probability}%
-          </label>
-          <input
-            type="range"
-            min="1"
-            max="99"
-            value={formData.probability}
-            onChange={(e) => handleProbabilityChange(parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>1%</span>
-            <span>50%</span>
-            <span>99%</span>
-          </div>
-        </div>
-
-        {/* Odds Input */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Format
-            </label>
-            <select
-              value={formData.oddsFormat}
-              onChange={(e) => setFormData(prev => ({ ...prev, oddsFormat: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="american">American</option>
-              <option value="decimal">Decimal</option>
-              <option value="fractional">Fractional</option>
-            </select>
-          </div>
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Odds
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">Kelly Criterion Calculator</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-6">
+          {/* Win Probability */}
+          <div>
+            <label htmlFor="probability" className="block text-sm font-medium text-gray-700">
+              Win Probability: {formatProbability(formData.probability)}
             </label>
             <input
-              type="text"
-              value={formData.odds}
-              onChange={(e) => setFormData(prev => ({ ...prev, odds: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder={
-                formData.oddsFormat === 'american' 
-                  ? "e.g. +150 or -110" 
-                  : formData.oddsFormat === 'decimal'
-                    ? "e.g. 2.50" 
-                    : "e.g. 3/2"
-              }
-              required
+              id="probability"
+              name="probability"
+              type="range"
+              min="0.01"
+              max="0.99"
+              step="0.01"
+              value={formData.probability}
+              onChange={handleProbabilitySlider}
+              className="mt-1 w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer"
             />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>1%</span>
+              <span>50%</span>
+              <span>99%</span>
+            </div>
           </div>
-        </div>
 
-        {/* Confidence Level */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Confidence Level
-          </label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <button
-                key={level}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, confidenceLevel: level }))}
-                className={`flex-1 py-2 rounded-lg font-medium transition-colors
-                  ${formData.confidenceLevel === level
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+          {/* Odds */}
+          <div>
+            <label htmlFor="odds" className="block text-sm font-medium text-gray-700">
+              Odds (American)
+            </label>
+            <input
+              id="odds"
+              name="odds"
+              type="number"
+              value={formData.odds}
+              onChange={handleChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Example: +150 (bet $100 to win $150) or -110 (bet $110 to win $100)
+            </p>
+          </div>
+
+          {/* Bankroll */}
+          <div>
+            <label htmlFor="bankroll" className="block text-sm font-medium text-gray-700">
+              Available Bankroll
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 sm:text-sm">$</span>
+              </div>
+              <input
+                id="bankroll"
+                name="bankroll"
+                type="number"
+                min="1"
+                value={formData.bankroll}
+                onChange={handleChange}
+                className="block w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Sport and Bet Type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="sport" className="block text-sm font-medium text-gray-700">
+                Sport
+              </label>
+              <select
+                id="sport"
+                name="sport"
+                value={formData.sport}
+                onChange={handleChange}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
-                {level}
-              </button>
-            ))}
+                <option value="basketball">Basketball</option>
+                <option value="football">Football</option>
+                <option value="baseball">Baseball</option>
+                <option value="hockey">Hockey</option>
+                <option value="soccer">Soccer</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="betType" className="block text-sm font-medium text-gray-700">
+                Bet Type
+              </label>
+              <select
+                id="betType"
+                name="betType"
+                value={formData.betType}
+                onChange={handleChange}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="spread">Spread</option>
+                <option value="moneyline">Moneyline</option>
+                <option value="total">Total (Over/Under)</option>
+                <option value="prop">Prop Bet</option>
+              </select>
+            </div>
           </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Low</span>
-            <span>Medium</span>
-            <span>High</span>
+
+          <div className="pt-4">
+            <button
+              type="submit"
+              className="w-full inline-flex justify-center py-3 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Calculate Optimal Bet
+            </button>
           </div>
         </div>
-
-        {/* Calculate Button */}
-        <button
-          type="submit"
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors duration-200 flex items-center justify-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          Calculate Kelly Bet
-        </button>
       </form>
     </div>
   );

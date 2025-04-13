@@ -1,4 +1,4 @@
-# Smart Sports Betting Assistant API Documentation
+# Kelly's Criterion API Documentation
 
 ## Authentication
 

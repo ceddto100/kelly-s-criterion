@@ -11,3 +11,20 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Navigation height and content padding */
+.nav-height {
+  height: 64px; /* Fixed height for the navigation bar */
+}
+
+/* Ensure proper spacing for page content */
+.page-content {
+  padding-top: 80px; /* More padding than the nav height to ensure nothing is hidden */
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .page-content {
+    padding-top: 72px; /* Slightly less padding on mobile */
+  }
+}

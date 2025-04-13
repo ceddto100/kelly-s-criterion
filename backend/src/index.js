@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const betRoutes = require('./routes/betRoutes');
+const historicalDataRoutes = require('./routes/historicalDataRoutes');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/bets', betRoutes);
+app.use('/api/historical-data', historicalDataRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)

@@ -10,7 +10,25 @@ import {
   ReferenceLine
 } from 'recharts';
 
-const BankrollChart = ({ data, stats }) => {
+// Default mock data
+const defaultData = [
+  { date: '2023-01-01', balance: 1000 },
+  { date: '2023-01-15', balance: 1120 },
+  { date: '2023-01-30', balance: 1050 },
+  { date: '2023-02-15', balance: 1200 },
+  { date: '2023-03-01', balance: 1350 },
+  { date: '2023-03-15', balance: 1280 },
+  { date: '2023-04-01', balance: 1420 }
+];
+
+// Default stats
+const defaultStats = {
+  roi: 42.0,
+  winRate: 58.3,
+  totalBets: 24
+};
+
+const BankrollChart = ({ data = defaultData, stats = defaultStats }) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

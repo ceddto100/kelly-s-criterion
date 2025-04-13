@@ -1,45 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-const BetResultDisplay = ({ betAnalysis, onSave, defaultKellyFraction = 'full', bankroll = 1000, maxBetPercentage = 10 }) => {
-  const [kellyFraction, setKellyFraction] = useState(defaultKellyFraction); // full, half, quarter
-
-  // Update Kelly fraction when default changes
-  useEffect(() => {
-    setKellyFraction(defaultKellyFraction);
-  }, [defaultKellyFraction]);
-
-  const getRiskLevelColor = (riskLevel) => {
-    switch (riskLevel.toLowerCase()) {
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const calculateAdjustedSize = (size) => {
-    switch (kellyFraction) {
-      case 'half':
-        return size / 2;
-      case 'quarter':
-        return size / 4;
-      default:
-        return size;
-    }
-  };
-
-  // Apply Kelly fraction adjustment
-  let adjustedBetSize = calculateAdjustedSize(betAnalysis.recommendedSize);
-  
-  // Apply max bet percentage cap
-  adjustedBetSize = Math.min(adjustedBetSize, maxBetPercentage);
-  
-  // Calculate actual bet amount in dollars
-  const betAmount = (adjustedBetSize / 100) * bankroll;
+const BetResultDisplay = ({ result }) => {
+  if (!result) return null;
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -50,117 +12,96 @@ const BetResultDisplay = ({ betAnalysis, onSave, defaultKellyFraction = 'full', 
     }).format(value);
   };
 
-  const formatOdds = (odds, format) => {
-    if (format === 'american') {
-      return odds.toString().startsWith('+') || odds.toString().startsWith('-') 
-        ? odds 
-        : (parseFloat(odds) > 0 ? `+${odds}` : odds);
-    }
-    return odds;
+  const formatPercentage = (value) => {
+    return `${(value * 100).toFixed(2)}%`;
   };
 
-  const handleSave = () => {
-    onSave({
-      ...betAnalysis,
-      kellyFraction,
-      adjustedBetSize,
-      betAmount,
-      date: new Date().toISOString(),
-      result: 'pending'
-    });
+  const getBetSizeColor = (kellyPercentage) => {
+    if (kellyPercentage <= 0) return 'text-red-600';
+    if (kellyPercentage < 0.05) return 'text-yellow-600';
+    return 'text-green-600';
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto">
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">Bet Analysis Results</h2>
+      
       <div className="space-y-6">
-        {/* Match Title */}
-        <div className="border-b pb-2">
-          <h3 className="text-lg font-semibold text-gray-800">{betAnalysis.matchTitle}</h3>
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>Win Probability: {betAnalysis.probability}%</span>
-            <span>Odds: {formatOdds(betAnalysis.odds, betAnalysis.oddsFormat)}</span>
+        {/* Kelly Criterion Results */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Kelly Criterion</h3>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">Optimal Kelly Percentage</p>
+              <p className={`text-3xl font-bold ${getBetSizeColor(result.kellyPercentage)}`}>
+                {formatPercentage(result.kellyPercentage)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {result.kellyPercentage <= 0 
+                  ? "No edge found. Avoid this bet."
+                  : "Percentage of bankroll to wager"}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm text-gray-600">Full Kelly Bet</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(result.kellyBet)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm text-gray-600">Half Kelly Bet</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(result.kellyBet / 2)}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Edge and Risk Level */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">Edge</h3>
-            <p className="text-3xl font-bold text-indigo-600">
-              {betAnalysis.edge.toFixed(2)}%
-            </p>
-          </div>
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(betAnalysis.riskLevel)}`}>
-            {betAnalysis.riskLevel} Risk
-          </div>
-        </div>
-
-        {/* Kelly Fraction Toggle */}
+        
+        {/* Input Summary */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Kelly Criterion
-          </label>
-          <div className="flex rounded-lg bg-gray-100 p-1">
-            {['full', 'half', 'quarter'].map((fraction) => (
-              <button
-                key={fraction}
-                onClick={() => setKellyFraction(fraction)}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors
-                  ${kellyFraction === fraction
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                  }`}
-              >
-                {fraction.charAt(0).toUpperCase() + fraction.slice(1)}
-              </button>
-            ))}
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Input Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">Win Probability</p>
+              <p className="text-xl font-medium text-gray-900">
+                {formatPercentage(result.probability)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">American Odds</p>
+              <p className="text-xl font-medium text-gray-900">
+                {result.odds > 0 ? `+${result.odds}` : result.odds}
+              </p>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">Sport</p>
+              <p className="text-xl font-medium text-gray-900">
+                {result.sport.charAt(0).toUpperCase() + result.sport.slice(1)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">Bet Type</p>
+              <p className="text-xl font-medium text-gray-900">
+                {result.betType.charAt(0).toUpperCase() + result.betType.slice(1)}
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Recommended Bet Size */}
-        <div className="bg-indigo-50 rounded-xl p-4">
-          <h3 className="text-sm font-medium text-indigo-800 mb-1">
-            Recommended Bet Size
-          </h3>
-          <p className="text-3xl font-bold text-indigo-900 mb-1">
-            {adjustedBetSize.toFixed(2)}%
+        
+        {/* Recommendation */}
+        <div className="rounded-lg bg-blue-50 p-4 border-l-4 border-blue-500">
+          <h3 className="text-md font-medium text-blue-800 mb-1">Recommendation</h3>
+          <p className="text-sm text-blue-700">
+            {result.kellyPercentage <= 0 
+              ? "This bet has no mathematical edge. It's recommended to avoid it."
+              : result.kellyPercentage < 0.05
+                ? "This bet has a small edge. Consider using a half Kelly or less to manage risk."
+                : "This bet has a good edge. Using half Kelly is recommended for long-term bankroll growth."}
           </p>
-          <p className="text-sm text-indigo-700">
-            {formatCurrency(betAmount)} of your {formatCurrency(bankroll)} bankroll
-          </p>
-          {adjustedBetSize === maxBetPercentage && (
-            <p className="text-xs text-orange-600 mt-2">
-              * Capped at maximum bet size of {maxBetPercentage}%
-            </p>
-          )}
         </div>
-
-        {/* Expected Value */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h4 className="text-sm font-medium text-gray-600">Expected Value</h4>
-            <p className="text-xl font-semibold text-gray-900">
-              {betAnalysis.expectedValue.toFixed(2)}%
-            </p>
-          </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-600">Break-Even Prob.</h4>
-            <p className="text-xl font-semibold text-gray-900">
-              {betAnalysis.breakEvenProb.toFixed(2)}%
-            </p>
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors duration-200 flex items-center justify-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-          </svg>
-          Save this bet
-        </button>
       </div>
     </div>
   );

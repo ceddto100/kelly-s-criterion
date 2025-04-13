@@ -1,6 +1,7 @@
 const Bet = require('../models/betModel');
 const User = require('../models/userModel');
 const { calculateKellyBet, calculateRiskMetrics, oddsCalculations } = require('../utils/kellyCalculations');
+const probabilityController = require('./controllers/probabilityController');
 
 // Create new bet with Kelly Criterion calculations
 const createBet = async (req, res) => {
@@ -322,5 +323,6 @@ module.exports = {
   getBets,
   getBet,
   updateBetResult,
-  getBetStats
+  getBetStats,
+  probabilityController
 }; 

@@ -1,5 +1,121 @@
 /**
+ * Utility functions for bet calculations
+ */
+
+/**
+ * Convert American odds to decimal odds
+ * @param {number} americanOdds - American odds (e.g. +150, -110)
+ * @returns {number} - Decimal odds (e.g. 2.5, 1.91)
+ */
+export const americanToDecimal = (americanOdds) => {
+  if (americanOdds > 0) {
+    return 1 + (americanOdds / 100);
+  } else {
+    return 1 + (100 / Math.abs(americanOdds));
+  }
+};
+
+/**
+ * Convert decimal odds to American odds
+ * @param {number} decimalOdds - Decimal odds (e.g. 2.5, 1.91)
+ * @returns {number} - American odds (e.g. +150, -110)
+ */
+export const decimalToAmerican = (decimalOdds) => {
+  if (decimalOdds >= 2) {
+    return Math.round((decimalOdds - 1) * 100);
+  } else {
+    return Math.round(-100 / (decimalOdds - 1));
+  }
+};
+
+/**
+ * Calculate the implied probability from decimal odds
+ * @param {number} decimalOdds - Decimal odds (e.g. 2.5, 1.91)
+ * @returns {number} - Implied probability (0 to 1)
+ */
+export const oddsToImpliedProbability = (decimalOdds) => {
+  return 1 / decimalOdds;
+};
+
+/**
+ * Calculate the Kelly Criterion bet size
+ * @param {number} probability - Estimated probability of winning (0 to 1)
+ * @param {number} americanOdds - American odds (e.g. +150, -110)
+ * @returns {number} - Kelly percentage (0 to 1)
+ */
+export const calculateKelly = (probability, americanOdds) => {
+  const decimalOdds = americanToDecimal(americanOdds);
+  const impliedProbability = oddsToImpliedProbability(decimalOdds);
+  
+  // Edge calculation
+  const edge = probability - impliedProbability;
+  
+  // Kelly formula: (bp - q) / b
+  // where b = decimal odds - 1, p = probability of winning, q = probability of losing
+  const b = decimalOdds - 1; // The profit per unit wagered if you win
+  const q = 1 - probability; // Probability of losing
+  
+  const kellyPercentage = (b * probability - q) / b;
+  
+  // Return 0 if Kelly is negative (no edge)
+  return Math.max(0, kellyPercentage);
+};
+
+/**
+ * Calculate full Kelly bet amount
+ * @param {number} kellyPercentage - Kelly percentage (0 to 1)
+ * @param {number} bankroll - Total bankroll amount
+ * @returns {number} - Bet amount
+ */
+export const calculateKellyBet = (kellyPercentage, bankroll) => {
+  return kellyPercentage * bankroll;
+};
+
+/**
+ * Calculate expected value of a bet
+ * @param {number} probability - Estimated probability of winning (0 to 1)
+ * @param {number} americanOdds - American odds (e.g. +150, -110)
+ * @returns {number} - Expected value percentage
+ */
+export const calculateExpectedValue = (probability, americanOdds) => {
+  const decimalOdds = americanToDecimal(americanOdds);
+  const winProfit = decimalOdds - 1; // Profit if you win (per unit wagered)
+  const lossProbability = 1 - probability; // Probability of losing
+  
+  // EV = (probability * profit) - (loss probability * stake)
+  return (probability * winProfit) - lossProbability;
+};
+
+/**
+ * Analyze a bet and return Kelly criterion and other metrics
+ * @param {Object} betData - Bet data
+ * @param {number} betData.probability - Estimated probability of winning (0 to 1)
+ * @param {number} betData.odds - American odds (e.g. +150, -110)
+ * @param {number} betData.bankroll - Total bankroll amount
+ * @returns {Object} - Analysis results
+ */
+export const analyzeBet = (betData) => {
+  const { probability, odds, bankroll, sport, betType } = betData;
+  
+  const kellyPercentage = calculateKelly(probability, odds);
+  const kellyBet = calculateKellyBet(kellyPercentage, bankroll);
+  const expectedValue = calculateExpectedValue(probability, odds);
+  const decimalOdds = americanToDecimal(odds);
+  const impliedProbability = oddsToImpliedProbability(decimalOdds);
+  
+  return {
+    ...betData,
+    kellyPercentage,
+    kellyBet,
+    expectedValue,
+    decimalOdds,
+    impliedProbability
+  };
+};
+
+/**
  * Calculates optimal bet sizing using the Kelly Criterion formula
+ * with confidence level adjustment
  * @param {Object} params - Calculation parameters
  * @param {number} params.probability - Estimated win probability (0-1)
  * @param {string|number} params.odds - Odds value (can be American format like +150, -110 or decimal format like 2.5)
@@ -7,7 +123,7 @@
  * @param {number} params.confidenceLevel - User confidence level (1-5)
  * @returns {Object} Kelly calculation results
  */
-export const calculateKelly = ({ probability, odds, oddsFormat, confidenceLevel = 3 }) => {
+export const calculateKellyWithConfidence = ({ probability, odds, oddsFormat, confidenceLevel = 3 }) => {
   // Ensure probability is between 0 and 1
   const prob = Math.min(Math.max(probability, 0.01), 0.99);
   
