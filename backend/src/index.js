@@ -5,6 +5,7 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const betRoutes = require('./routes/betRoutes');
 const historicalDataRoutes = require('./routes/historicalDataRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/historical-data', historicalDataRoutes);
+app.use('/api/auth', authRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)

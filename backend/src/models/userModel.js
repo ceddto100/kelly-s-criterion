@@ -26,6 +26,19 @@ const bankrollHistorySchema = new mongoose.Schema({
 });
 
 const userSchema = new mongoose.Schema({
+  // Firebase Authentication Fields
+  firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  photoURL: {
+    type: String
+  },
+  lastLogin: {
+    type: Date
+  },
+  
   username: {
     type: String,
     required: [true, 'Username is required'],
@@ -42,7 +55,10 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      // Password is only required for local authentication (no Firebase)
+      return !this.firebaseUid;
+    },
     minlength: 6
   },
   
@@ -181,7 +197,8 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  // Skip password hashing for Firebase users or if password isn't modified
+  if (this.firebaseUid || !this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

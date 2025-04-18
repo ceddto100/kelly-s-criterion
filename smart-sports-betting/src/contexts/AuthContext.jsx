@@ -1,91 +1,158 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import authService from '../services/authService';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { auth } from '../config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { 
+  loginWithEmailPassword, 
+  registerWithEmailPassword, 
+  loginWithGoogle, 
+  logout, 
+  resetPassword,
+  getCurrentUserProfile
+} from '../services/authService';
+import axios from 'axios';
 
+// Create the context
 const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+// Custom hook to use the auth context
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
+  // Set up auth token for API requests
   useEffect(() => {
-    // Check if user is stored in localStorage on mount
-    const initAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const user = await authService.getCurrentUser();
-          setCurrentUser(user);
+    const interceptor = axios.interceptors.request.use(
+      async (config) => {
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
-      } catch (err) {
-        console.error('Failed to initialize auth', err);
-        localStorage.removeItem('token');
-      } finally {
-        setLoading(false);
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
       }
-    };
+    );
 
-    initAuth();
+    return () => {
+      // Remove the interceptor when the component unmounts
+      axios.interceptors.request.eject(interceptor);
+    };
+  }, [currentUser]);
+
+  // Load user profile
+  const loadUserProfile = async () => {
+    if (!currentUser) return null;
+    
+    try {
+      const profile = await getCurrentUserProfile();
+      setUserProfile(profile);
+      return profile;
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      setError('Failed to load user profile');
+      return null;
+    }
+  };
+
+  // Set up authentication state observer
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      
+      if (user) {
+        await loadUserProfile();
+      } else {
+        setUserProfile(null);
+      }
+      
+      setLoading(false);
+    });
+
+    // Clean up the observer on unmount
+    return unsubscribe;
   }, []);
 
+  // Authentication methods
+  const register = async (email, password) => {
+    try {
+      setError('');
+      await registerWithEmailPassword(email, password);
+      await loadUserProfile();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const login = async (email, password) => {
-    setError(null);
     try {
-      const { user, token } = await authService.login(email, password);
-      localStorage.setItem('token', token);
-      setCurrentUser(user);
-      return user;
+      setError('');
+      await loginWithEmailPassword(email, password);
+      await loadUserProfile();
     } catch (err) {
-      setError(err.message || 'Failed to login');
+      setError(err.message);
       throw err;
     }
   };
 
-  const register = async (userData) => {
-    setError(null);
+  const signInWithGoogle = async () => {
     try {
-      const { user, token } = await authService.register(userData);
-      localStorage.setItem('token', token);
-      setCurrentUser(user);
-      return user;
+      setError('');
+      await loginWithGoogle();
+      await loadUserProfile();
     } catch (err) {
-      setError(err.message || 'Failed to register');
+      setError(err.message);
       throw err;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setCurrentUser(null);
-  };
-
-  const updateUserProfile = async (userData) => {
-    setError(null);
+  const logoutUser = async () => {
     try {
-      const updatedUser = await authService.updateProfile(userData);
-      setCurrentUser(updatedUser);
-      return updatedUser;
+      setError('');
+      await logout();
+      setUserProfile(null);
     } catch (err) {
-      setError(err.message || 'Failed to update profile');
+      setError(err.message);
       throw err;
     }
   };
 
+  const resetUserPassword = async (email) => {
+    try {
+      setError('');
+      await resetPassword(email);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Context value
   const value = {
     currentUser,
+    userProfile,
     loading,
     error,
-    login,
     register,
-    logout,
-    updateUserProfile
+    login,
+    loginWithGoogle: signInWithGoogle,
+    logout: logoutUser,
+    resetPassword: resetUserPassword,
+    refreshUserProfile: loadUserProfile
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading ? children : <div>Loading...</div>}
     </AuthContext.Provider>
   );
 };

@@ -1,3 +1,12 @@
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  sendPasswordResetEmail
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -144,11 +153,157 @@ const updateProfile = async (userData) => {
   };
 };
 
+// Provider for Google Authentication
+const googleProvider = new GoogleAuthProvider();
+
+/**
+ * Sign in with email and password
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} - Firebase user object
+ */
+export const loginWithEmailPassword = async (email, password) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Register with email and password
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} - Firebase user object
+ */
+export const registerWithEmailPassword = async (email, password) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sign in with Google
+ * @returns {Promise<Object>} - Firebase user object
+ */
+export const loginWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error('Google login error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sign out current user
+ * @returns {Promise<void>}
+ */
+export const logout = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('Logout error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send password reset email
+ * @param {string} email - User email
+ * @returns {Promise<void>}
+ */
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error('Password reset error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get current user's ID token
+ * @returns {Promise<string|null>} - ID token or null if not authenticated
+ */
+export const getIdToken = async () => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  
+  try {
+    return await user.getIdToken();
+  } catch (error) {
+    console.error('Error getting ID token:', error);
+    return null;
+  }
+};
+
+/**
+ * Get current user profile from API
+ * @returns {Promise<Object|null>} - User profile or null if error
+ */
+export const getCurrentUserProfile = async () => {
+  try {
+    const token = await getIdToken();
+    if (!token) return null;
+    
+    // Set up axios with the token
+    const response = await axios.get('/api/auth/me', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    return response.data.user;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Update user profile
+ * @param {Object} profileData - Profile data to update
+ * @returns {Promise<Object|null>} - Updated user profile or null if error
+ */
+export const updateUserProfile = async (profileData) => {
+  try {
+    const token = await getIdToken();
+    if (!token) return null;
+    
+    const response = await axios.put('/api/auth/profile', profileData, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    return response.data.user;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return null;
+  }
+};
+
 const authService = {
   login,
   register,
   getCurrentUser,
-  updateProfile
+  updateProfile,
+  loginWithEmailPassword,
+  registerWithEmailPassword,
+  loginWithGoogle,
+  logout,
+  resetPassword,
+  getIdToken,
+  getCurrentUserProfile,
+  updateUserProfile
 };
 
 export default authService; 

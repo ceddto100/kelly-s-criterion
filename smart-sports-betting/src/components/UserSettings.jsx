@@ -1,27 +1,70 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const UserSettings = ({ settings = {}, onSave, onCancel }) => {
+  const { userProfile, refreshUserProfile } = useAuth();
+  const navigate = useNavigate();
+  const isStandalone = !onSave && !onCancel;
+  
+  // Initialize with props or user profile data
   const [formData, setFormData] = useState({
-    bankroll: settings?.bankroll || settings?.initialBankroll || 1000,
-    defaultKellyFraction: settings?.defaultKellyFraction || 'half',
-    stopLossPercentage: settings?.stopLossPercentage || 20,
-    stopWinPercentage: settings?.stopWinPercentage || 50,
-    oddsFormat: settings?.oddsFormat || 'american',
-    maxBetPercentage: settings?.maxBetPercentage || 5,
-    maxConsecutiveLosses: settings?.maxConsecutiveLosses || 3,
-    unitSizingEnabled: settings?.unitSizingEnabled || false,
-    baseUnitSize: settings?.baseUnitSize || 100,
+    bankroll: settings?.bankroll || userProfile?.bankroll || 1000,
+    defaultKellyFraction: settings?.defaultKellyFraction || userProfile?.riskSettings?.defaultFractionMultiplier || 'half',
+    stopLossPercentage: settings?.stopLossPercentage || (userProfile?.riskSettings?.stopLossPercentage || 0.2) * 100,
+    stopWinPercentage: settings?.stopWinPercentage || (userProfile?.riskSettings?.stopWinPercentage || 0.5) * 100,
+    oddsFormat: settings?.oddsFormat || userProfile?.preferences?.oddsFormat || 'american',
+    maxBetPercentage: settings?.maxBetPercentage || (userProfile?.riskSettings?.maxBetPercentage || 0.05) * 100,
+    maxConsecutiveLosses: settings?.maxConsecutiveLosses || userProfile?.riskSettings?.maxConsecutiveLosses || 3,
+    unitSizingEnabled: settings?.unitSizingEnabled || userProfile?.riskSettings?.unitSizingEnabled || false,
+    baseUnitSize: settings?.baseUnitSize || userProfile?.riskSettings?.baseUnitSize || 100,
   });
 
   // Log the received settings for debugging
   useEffect(() => {
     console.log('UserSettings received settings:', settings);
-  }, [settings]);
+    console.log('UserSettings using userProfile:', userProfile);
+  }, [settings, userProfile]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Saving settings:', formData);
-    onSave(formData);
+    
+    try {
+      if (isStandalone) {
+        // If component is used standalone, save directly to API/context
+        // This would typically be an API call to update user settings
+        console.log('Saving settings directly (standalone mode)');
+        
+        // TODO: Replace with actual API call when implemented
+        // Example: await updateUserSettings(formData);
+        
+        // Refresh user profile after saving
+        if (refreshUserProfile) {
+          await refreshUserProfile();
+        }
+        
+        // Redirect back to dashboard when done
+        navigate('/dashboard');
+      } else if (typeof onSave === 'function') {
+        // If used as a modal/child component, call the provided onSave
+        onSave(formData);
+      } else {
+        console.error('No save handler provided');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    if (isStandalone) {
+      // Navigate back if used standalone
+      navigate('/dashboard');
+    } else if (typeof onCancel === 'function') {
+      // Use provided onCancel if available
+      onCancel();
+    }
   };
 
   const handleInputChange = (e) => {
@@ -37,7 +80,7 @@ const UserSettings = ({ settings = {}, onSave, onCancel }) => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Settings</h2>
         <button 
-          onClick={onCancel}
+          onClick={handleCancel}
           className="flex items-center text-gray-600 hover:text-indigo-600 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -228,7 +271,7 @@ const UserSettings = ({ settings = {}, onSave, onCancel }) => {
         <div className="pt-4 flex space-x-4">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
             className="flex-1 bg-indigo-100 text-indigo-800 py-3 rounded-xl font-medium hover:bg-indigo-200 transition-colors duration-200"
           >
             Cancel

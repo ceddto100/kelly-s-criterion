@@ -66,3 +66,10 @@ Thumbs.db
 # Logs
 logs
 *.log
+
+# Credentials and secrets
+**/service-account-key.json
+**/*-key.json
+**/*.pem
+**/*.key
+**/credentials.json

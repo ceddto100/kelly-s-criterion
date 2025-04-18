@@ -1,21 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const historicalDataController = require('../controllers/historicalDataController');
-const { authenticate } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 
 // Get historical data for a team
-router.get('/team', authenticate, historicalDataController.getTeamHistory);
+router.get('/team', protect, historicalDataController.getTeamHistory);
 
 // Add new historical data
-router.post('/', authenticate, historicalDataController.addHistoricalData);
+router.post('/', protect, historicalDataController.addHistoricalData);
 
 // Add user prediction to historical data
-router.post('/:historicalDataId/predictions', authenticate, historicalDataController.addPrediction);
+router.post('/:historicalDataId/predictions', protect, historicalDataController.addPrediction);
 
 // Get prediction accuracy metrics
-router.get('/accuracy', authenticate, historicalDataController.getPredictionAccuracy);
+router.get('/accuracy', protect, historicalDataController.getPredictionAccuracy);
 
 // Get model performance comparison
-router.get('/model-performance', authenticate, historicalDataController.getModelPerformance);
+router.get('/model-performance', protect, historicalDataController.getModelPerformance);
 
 module.exports = router; 

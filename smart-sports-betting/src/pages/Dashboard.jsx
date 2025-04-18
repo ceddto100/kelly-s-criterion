@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
     bankroll: 1000,
+    initialBankroll: 1000,
     defaultKellyFraction: 'half',
     maxBetPercentage: 5,
     baseUnitSize: 100,
@@ -83,7 +84,12 @@ const Dashboard = () => {
 
   const handleSaveSettings = (newSettings) => {
     console.log("Saving settings:", newSettings);
-    setSettings(newSettings);
+    // Ensure initialBankroll is always the same as bankroll
+    const updatedSettings = {
+      ...newSettings,
+      initialBankroll: newSettings.bankroll
+    };
+    setSettings(updatedSettings);
     setShowSettings(false);
   };
 
